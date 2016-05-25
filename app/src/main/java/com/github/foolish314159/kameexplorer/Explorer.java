@@ -15,6 +15,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Stack;
 
 /**
  * Created by Tom on 25.05.2016.
@@ -29,6 +30,8 @@ public class Explorer {
     private String rootPath;
     private String currentPath;
 
+    private Stack<String> pathHistory;
+
     public Explorer() {
         this(DEFAULT_ROOT_PATH, DEFAULT_ROOT_PATH);
     }
@@ -40,6 +43,23 @@ public class Explorer {
     public Explorer(String rootPath, String currentPath) {
         this.rootPath = rootPath;
         this.currentPath = currentPath;
+
+        pathHistory = new Stack<>();
+        pathHistory.push(currentPath);
+    }
+
+    public void setCurrentPath(String currentPath) {
+        this.currentPath = currentPath;
+        pathHistory.push(currentPath);
+    }
+
+    public boolean historyHasPrevious() {
+        return pathHistory.size() > 1;
+    }
+
+    public void historyBack() {
+        pathHistory.pop();
+        currentPath = pathHistory.peek();
     }
 
     public List<File> listFiles() {
@@ -86,7 +106,7 @@ public class Explorer {
         @Override
         public int compare(File lhs, File rhs) {
             if (lhs.isDirectory() == rhs.isDirectory()) {
-                return lhs.getName().compareTo(rhs.getName());
+                return lhs.getName().toLowerCase().compareTo(rhs.getName().toLowerCase());
             } else {
                 if (lhs.isDirectory()) {
                     return -1;

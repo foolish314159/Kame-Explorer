@@ -1,16 +1,23 @@
 package com.github.foolish314159.kameexplorer;
 
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
+import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.view.View;
+import android.widget.Toast;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.List;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements ExplorerAdapter.ExplorerOnFileClickListener {
 
     private RecyclerView mRecyclerView;
     private ExplorerAdapter mAdapter;
@@ -27,7 +34,8 @@ public class MainActivity extends AppCompatActivity {
         mRecyclerView.setHasFixedSize(true);
         mLayoutManager = new LinearLayoutManager(this);
         mRecyclerView.setLayoutManager(mLayoutManager);
-        mAdapter = new ExplorerAdapter(new ArrayList<File>());
+        mRecyclerView.addItemDecoration(new ExplorerItemSpacingDecoration(5));
+        mAdapter = new ExplorerAdapter(this);
         mRecyclerView.setAdapter(mAdapter);
 
         mExplorer = new Explorer();
@@ -50,7 +58,39 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void displayFiles() {
+        mAdapter.clear();
         mAdapter.addAll(mExplorer.listFilesSorted());
+        mRecyclerView.scrollToPosition(0);
+        mAdapter.notifyDataSetChanged();
     }
 
+    @Override
+    public void onFileClick(File file) {
+        if (file.isDirectory()) {
+            mExplorer.setCurrentPath(file.getAbsolutePath());
+            displayFiles();
+        } else {
+            Toast.makeText(this, file.getPath() + " / " + ExplorerAdapter.getMimeType(file), Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setDataAndType(Uri.fromFile(file), ExplorerAdapter.getMimeType(file));
+
+            PackageManager pm = getPackageManager();
+            List<ResolveInfo> activities = pm.queryIntentActivities(intent, 0);
+            boolean isIntentSafe = activities.size() > 0;
+
+            if (isIntentSafe) {
+                startActivity(intent);
+            }
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (mExplorer.historyHasPrevious()) {
+            mExplorer.historyBack();
+            displayFiles();
+        } else {
+            super.onBackPressed();
+        }
+    }
 }
